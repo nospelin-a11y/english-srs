@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f1115">
+<title>English SRS</title>
+<style>
+:root{
+  --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --line:#2a2f3a;
+  --tx:#e8eaed; --tx2:#9aa2b1; --accent:#5b8cff;
+  --again:#e05555; --hard:#d08a3a; --good:#3fa36b; --easy:#4a7fd4;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{
+  background:var(--bg);color:var(--tx);
+  font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);
+  overscroll-behavior:none;
+}
+.wrap{max-width:720px;margin:0 auto;padding:16px}
+h1{font-size:20px;margin:0 0 4px}
+h2{font-size:15px;margin:24px 0 8px;color:var(--tx2);font-weight:600;letter-spacing:.03em;text-transform:uppercase}
+p.sub{color:var(--tx2);margin:0 0 20px;font-size:14px}
+input,button,select{font:inherit;font-size:16px}
+input,select{
+  width:100%;padding:12px 14px;border-radius:10px;border:1px solid var(--line);
+  background:var(--panel2);color:var(--tx);margin-bottom:10px
+}
+button{
+  border:0;border-radius:10px;padding:13px 18px;background:var(--accent);color:#fff;
+  font-weight:600;cursor:pointer;width:100%
+}
+button.ghost{background:var(--panel2);color:var(--tx);border:1px solid var(--line)}
+button.sm{padding:9px 12px;font-size:14px;width:auto}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row>*{flex:1}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:12px}
+.hidden{display:none!important}
+.topbar{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.topbar .stats{margin-left:auto;display:flex;gap:14px;font-size:13px;color:var(--tx2)}
+.topbar .stats b{color:var(--tx);font-weight:600}
+.pill{background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:12px;color:var(--tx2)}
+/* study */
+#study .face{min-height:38vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px 12px}
+.front{font-size:34px;font-weight:600;letter-spacing:-.01em}
+.back{font-size:26px;color:#8ee0b0;margin-top:6px}
+.example{margin-top:18px;font-size:17px;color:var(--tx2);font-style:italic;max-width:34em}
+.divider{height:1px;background:var(--line);margin:14px 0}
+.grades{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.grades button{padding:16px 4px;font-size:14px;display:flex;flex-direction:column;gap:3px;align-items:center}
+.grades small{font-weight:400;opacity:.75;font-size:11px}
+.g1{background:var(--again)}.g2{background:var(--hard)}.g3{background:var(--good)}.g4{background:var(--easy)}
+.speak{background:var(--panel2);border:1px solid var(--line);color:var(--tx);border-radius:999px;width:auto;padding:8px 16px;font-size:14px;margin-top:16px}
+.done{text-align:center;padding:40px 12px}
+.done .big{font-size:44px;margin-bottom:8px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left}
+th{color:var(--tx2);font-weight:600;font-size:12px;text-transform:uppercase}
+.msg{padding:10px 14px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);font-size:14px;margin-bottom:12px}
+.msg.err{border-color:#7a3030;color:#ffb4b4}
+.msg.ok{border-color:#2f6b48;color:#9de8bd}
+a{color:var(--accent)}
+.tabs{display:flex;gap:6px;margin-bottom:16px}
+.tabs button{flex:1;background:var(--panel2);color:var(--tx2);border:1px solid var(--line);padding:10px;font-size:14px}
+.tabs button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- SETUP -->
+<section id="setup" class="hidden">
+  <h1>Conectar con Supabase</h1>
+  <p class="sub">Solo la primera vez. Se guarda en este dispositivo.</p>
+  <div class="card">
+    <input id="sbUrl" placeholder="Project URL (https://xxxx.supabase.co)" autocapitalize="off" autocorrect="off">
+    <input id="sbKey" placeholder="anon public key" autocapitalize="off" autocorrect="off">
+    <button onclick="saveConfig()">Guardar</button>
+  </div>
+  <p class="sub">Supabase → Project Settings → API. La <i>anon key</i> es pública por diseño; tus datos los protege RLS.</p>
+</section>
+
+<!-- LOGIN -->
+<section id="login" class="hidden">
+  <h1>Entrar</h1>
+  <p class="sub">Te llega un enlace al correo. Sin contraseña.</p>
+  <div class="card">
+    <input id="email" type="email" placeholder="tu@email.com" autocapitalize="off" autocorrect="off">
+    <button onclick="sendLink()">Enviar enlace</button>
+    <div id="loginMsg"></div>
+  </div>
+  <button class="ghost sm" onclick="resetConfig()">Cambiar proyecto de Supabase</button>
+</section>
+
+<!-- APP -->
+<section id="app" class="hidden">
+  <div class="topbar">
+    <span class="pill" id="whoami"></span>
+    <div class="stats">
+      <span>Nuevas <b id="cNew">0</b></span>
+      <span>Repaso <b id="cDue">0</b></span>
+      <span>Hoy <b id="cDone">0</b></span>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button id="tabStudy" class="on" onclick="showTab('study')">Estudiar</button>
+    <button id="tabAdd" onclick="showTab('add')">Añadir</button>
+    <button id="tabManage" onclick="showTab('manage')">Mazo</button>
+  </div>
+
+  <!-- STUDY -->
+  <div id="study">
+    <div id="studyCard" class="card hidden">
+      <div class="face">
+        <div class="front" id="qFront"></div>
+        <div id="answer" class="hidden">
+          <div class="back" id="qBack"></div>
+          <div class="example" id="qExample"></div>
+        </div>
+        <button class="speak hidden" id="speakBtn" onclick="speakCurrent()">Escuchar</button>
+      </div>
+      <div class="divider"></div>
+      <button id="revealBtn" onclick="reveal()">Mostrar respuesta</button>
+      <div id="gradeBox" class="grades hidden">
+        <button class="g1" onclick="grade(1)">Otra vez<small id="p1"></small></button>
+        <button class="g2" onclick="grade(2)">Difícil<small id="p2"></small></button>
+        <button class="g3" onclick="grade(3)">Bien<small id="p3"></small></button>
+        <button class="g4" onclick="grade(4)">Fácil<small id="p4"></small></button>
+      </div>
+    </div>
+    <div id="studyDone" class="card done hidden">
+      <div class="big">Hecho</div>
+      <p class="sub" id="doneMsg">No quedan tarjetas por hoy.</p>
+      <button class="ghost" onclick="loadQueue()">Recargar</button>
+    </div>
+    <div id="studyEmpty" class="card done hidden">
+      <div class="big">Mazo vacío</div>
+      <p class="sub">Importa el mazo inicial desde la pestaña Mazo.</p>
+    </div>
+  </div>
+
+  <!-- ADD -->
+  <div id="add" class="hidden">
+    <div class="card">
+      <input id="nFront" placeholder="Inglés (ej. to tackle)">
+      <input id="nBack" placeholder="Español (ej. abordar)">
+      <input id="nExample" placeholder="Frase de ejemplo en inglés">
+      <input id="nTag" placeholder="Etiqueta (opcional: verb, phrase, mining...)">
+      <button onclick="addCard()">Añadir tarjeta</button>
+      <div id="addMsg"></div>
+    </div>
+    <p class="sub">Regla del método: añade lo que te encuentres en la inmersión, en frase completa, no palabras sueltas.</p>
+  </div>
+
+  <!-- MANAGE -->
+  <div id="manage" class="hidden">
+    <div class="card">
+      <h2 style="margin-top:0">Ajustes</h2>
+      <label class="sub">Tarjetas nuevas por día</label>
+      <input id="newLimit" type="number" min="0" max="100" onchange="setLimit()">
+      <label class="sub">Voz</label>
+      <select id="voiceSel" onchange="setVoice()"></select>
+      <div class="row" style="margin-top:8px">
+        <button class="ghost sm" onclick="importDeck()">Importar mazo inicial</button>
+        <button class="ghost sm" onclick="signOut()">Cerrar sesión</button>
+      </div>
+      <div id="manageMsg"></div>
+    </div>
+    <div class="card">
+      <h2 style="margin-top:0">Estado del mazo</h2>
+      <table id="statsTable"></table>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+/* ---------- config ---------- */
+const LS = {
+  url:'srs_url', key:'srs_key', limit:'srs_newlimit', voice:'srs_voice',
+  newDay:'srs_newday', newCount:'srs_newcount'
+};
+const DEFAULT_URL='https://fpiamcwjkvyjnjdnziwu.supabase.co';
+const DEFAULT_KEY='sb_publishable_MRkEpqR4A3Dpmn10I2rYEA_bsaHgwRC';
+let sb=null, user=null, queue=[], current=null, doneToday=0, newLimit=+(localStorage.getItem(LS.limit)||15);
+
+function $(id){return document.getElementById(id)}
+function show(id){['setup','login','app'].forEach(s=>$(s).classList.toggle('hidden',s!==id))}
+function msg(el,text,cls){$(el).innerHTML = text ? '<div class="msg '+(cls||'')+'">'+text+'</div>' : ''}
+function today(){const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)}
+function addDays(n){const d=new Date();d.setDate(d.getDate()+n);return new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)}
+
+function saveConfig(){
+  const u=$('sbUrl').value.trim().replace(/\/$/,''), k=$('sbKey').value.trim();
+  if(!u||!k) return alert('Faltan datos');
+  localStorage.setItem(LS.url,u); localStorage.setItem(LS.key,k); location.reload();
+}
+function resetConfig(){localStorage.removeItem(LS.url);localStorage.removeItem(LS.key);location.reload()}
+
+/* ---------- auth ---------- */
+async function sendLink(){
+  const email=$('email').value.trim();
+  if(!email) return;
+  msg('loginMsg','Enviando...');
+  const {error} = await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.href.split('#')[0]}});
+  msg('loginMsg', error? error.message : 'Enlace enviado. Ábrelo en este mismo dispositivo.', error?'err':'ok');
+}
+async function signOut(){await sb.auth.signOut();location.reload()}
+
+/* ---------- SM-2 ---------- */
+function schedule(c,g){
+  let {interval,ease,reps,lapses,state}=c;
+  ease = ease || 2.5;
+  if(g===1){
+    ease=Math.max(1.3,ease-0.2); lapses++; interval=0; state='learning';
+    return {interval,ease,reps,lapses,state,due:today(),again:true};
+  }
+  const fresh = (state==='new'||interval===0);
+  if(g===2){ ease=Math.max(1.3,ease-0.15); interval = fresh?1:Math.max(1,Math.round(interval*1.2)); }
+  if(g===3){ interval = fresh?1:(interval===1?3:Math.round(interval*ease)); }
+  if(g===4){ ease=ease+0.15; interval = fresh?3:Math.round(interval*ease*1.3); }
+  interval=Math.min(interval,365); reps++;
+  return {interval,ease,reps,lapses,state:'review',due:addDays(interval),again:false};
+}
+function previewLabel(n){ if(n===0) return '<1 min'; if(n===1) return '1 d'; if(n<30) return n+' d'; return (n/30).toFixed(n<60?1:0)+' m'; }
+function updatePreviews(){
+  for(let g=1;g<=4;g++){ const s=schedule(current,g); $('p'+g).textContent = g===1?'<1 min':previewLabel(s.interval); }
+}
+
+/* ---------- queue ---------- */
+async function loadQueue(){
+  const t=today();
+  const {data:due} = await sb.from('en_cards').select('*').neq('state','new').lte('due',t).order('due').limit(200);
+  const {count:newDone} = await sb.from('en_reviews').select('*',{count:'exact',head:true}).gte('reviewed_at',t+'T00:00:00');
+  const remaining = Math.max(0, newLimit - newDoneToday());
+  const {data:fresh} = remaining
+    ? await sb.from('en_cards').select('*').eq('state','new').order('id').limit(remaining)
+    : {data:[]};
+  const {count:total} = await sb.from('en_cards').select('*',{count:'exact',head:true});
+  doneToday = newDone||0;
+  queue = shuffle([...(due||[]), ...(fresh||[])]);
+  $('cNew').textContent=(fresh||[]).length;
+  $('cDue').textContent=(due||[]).length;
+  $('cDone').textContent=doneToday;
+  if(!total){ $('studyCard').classList.add('hidden');$('studyDone').classList.add('hidden');$('studyEmpty').classList.remove('hidden'); return; }
+  $('studyEmpty').classList.add('hidden');
+  next();
+}
+function newDoneToday(){
+  if(localStorage.getItem(LS.newDay)!==today()){localStorage.setItem(LS.newDay,today());localStorage.setItem(LS.newCount,'0')}
+  return +(localStorage.getItem(LS.newCount)||0);
+}
+function bumpNewDone(){localStorage.setItem(LS.newCount,String(newDoneToday()+1))}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a}
+
+function next(){
+  current = queue.shift()||null;
+  if(!current){
+    $('studyCard').classList.add('hidden'); $('studyDone').classList.remove('hidden');
+    $('doneMsg').textContent = doneToday+' tarjetas repasadas hoy. Vuelve mañana.';
+    return;
+  }
+  $('studyDone').classList.add('hidden'); $('studyCard').classList.remove('hidden');
+  $('qFront').textContent=current.front;
+  $('qBack').textContent=current.back;
+  $('qExample').textContent=current.example||'';
+  $('answer').classList.add('hidden');
+  $('speakBtn').classList.add('hidden');
+  $('gradeBox').classList.add('hidden');
+  $('revealBtn').classList.remove('hidden');
+}
+function reveal(){
+  $('answer').classList.remove('hidden');
+  $('speakBtn').classList.remove('hidden');
+  $('revealBtn').classList.add('hidden');
+  $('gradeBox').classList.remove('hidden');
+  updatePreviews();
+  speakCurrent();
+}
+async function grade(g){
+  const c=current, s=schedule(c,g);
+  if(c.state==='new') bumpNewDone();
+  $('gradeBox').classList.add('hidden');
+  if(s.again) queue.splice(Math.min(3,queue.length),0,{...c,state:'learning',interval:0,ease:s.ease,lapses:s.lapses});
+  doneToday++; $('cDone').textContent=doneToday;
+  next();
+  await sb.from('en_cards').update({interval:s.interval,ease:s.ease,reps:s.reps,lapses:s.lapses,state:s.state,due:s.due}).eq('id',c.id);
+  await sb.from('en_reviews').insert({card_id:c.id,grade:g,user_id:user.id});
+}
+
+/* ---------- TTS ---------- */
+let voices=[];
+function loadVoices(){
+  voices=speechSynthesis.getVoices().filter(v=>v.lang.startsWith('en'));
+  const sel=$('voiceSel'); sel.innerHTML='';
+  voices.forEach((v,i)=>{const o=document.createElement('option');o.value=i;o.textContent=v.name+' ('+v.lang+')';sel.appendChild(o)});
+  const saved=localStorage.getItem(LS.voice); if(saved!==null&&voices[saved]) sel.value=saved;
+}
+function setVoice(){localStorage.setItem(LS.voice,$('voiceSel').value)}
+function speakCurrent(){
+  if(!current||!window.speechSynthesis) return;
+  speechSynthesis.cancel();
+  const idx=localStorage.getItem(LS.voice), v=voices[idx]||voices.find(x=>x.lang==='en-GB')||voices[0];
+  const say=(text,rate)=>{const u=new SpeechSynthesisUtterance(text);if(v)u.voice=v;u.lang=v?v.lang:'en-GB';u.rate=rate;speechSynthesis.speak(u)};
+  say(current.front.replace(/^to /,''),0.9);
+  if(current.example) say(current.example,0.95);
+}
+
+/* ---------- add / import ---------- */
+async function addCard(){
+  const f=$('nFront').value.trim(), b=$('nBack').value.trim();
+  if(!f||!b) return msg('addMsg','Faltan inglés o español','err');
+  const {error}=await sb.from('en_cards').insert({front:f,back:b,example:$('nExample').value.trim(),tag:$('nTag').value.trim(),user_id:user.id});
+  if(error) return msg('addMsg',error.message,'err');
+  ['nFront','nBack','nExample'].forEach(i=>$(i).value='');
+  msg('addMsg','Añadida','ok'); loadStats();
+}
+async function importDeck(){
+  msg('manageMsg','Descargando mazo...');
+  const txt = await (await fetch('deck.tsv?v='+Date.now())).text();
+  const rows = txt.trim().split('\n').map(l=>l.split('\t'));
+  const {data:existing} = await sb.from('en_cards').select('front');
+  const have = new Set((existing||[]).map(r=>r.front));
+  const toAdd = rows.filter(r=>r[0]&&!have.has(r[0])).map(r=>({front:r[0],back:r[1]||'',example:r[2]||'',tag:r[3]||'',user_id:user.id}));
+  if(!toAdd.length) return msg('manageMsg','Ya está todo importado','ok');
+  for(let i=0;i<toAdd.length;i+=100){
+    const {error}=await sb.from('en_cards').insert(toAdd.slice(i,i+100));
+    if(error) return msg('manageMsg',error.message,'err');
+    msg('manageMsg','Importando '+Math.min(i+100,toAdd.length)+'/'+toAdd.length+'...');
+  }
+  msg('manageMsg',toAdd.length+' tarjetas importadas','ok');
+  loadStats(); loadQueue();
+}
+function setLimit(){newLimit=+$('newLimit').value||0;localStorage.setItem(LS.limit,newLimit);loadQueue()}
+
+async function loadStats(){
+  const t=today();
+  const q=async(f)=>{const{count}=await f;return count||0};
+  const total=await q(sb.from('en_cards').select('*',{count:'exact',head:true}));
+  const nw   =await q(sb.from('en_cards').select('*',{count:'exact',head:true}).eq('state','new'));
+  const rev  =await q(sb.from('en_cards').select('*',{count:'exact',head:true}).eq('state','review'));
+  const due  =await q(sb.from('en_cards').select('*',{count:'exact',head:true}).neq('state','new').lte('due',t));
+  const wk   =await q(sb.from('en_reviews').select('*',{count:'exact',head:true}).gte('reviewed_at',addDays(-7)+'T00:00:00'));
+  $('statsTable').innerHTML =
+    '<tr><th>Total</th><td>'+total+'</td></tr>'+
+    '<tr><th>Sin ver</th><td>'+nw+'</td></tr>'+
+    '<tr><th>En repaso</th><td>'+rev+'</td></tr>'+
+    '<tr><th>Pendientes hoy</th><td>'+due+'</td></tr>'+
+    '<tr><th>Repasos 7 días</th><td>'+wk+'</td></tr>';
+}
+
+function showTab(t){
+  ['study','add','manage'].forEach(x=>{$(x).classList.toggle('hidden',x!==t);
+    $('tab'+x[0].toUpperCase()+x.slice(1)).classList.toggle('on',x===t)});
+  if(t==='manage') loadStats();
+}
+
+/* ---------- keyboard ---------- */
+document.addEventListener('keydown',e=>{
+  if($('app').classList.contains('hidden')) return;
+  if(document.activeElement.tagName==='INPUT') return;
+  if(e.code==='Space'){e.preventDefault(); $('revealBtn').classList.contains('hidden')?null:reveal();}
+  if(['1','2','3','4'].includes(e.key) && !$('gradeBox').classList.contains('hidden')) grade(+e.key);
+});
+
+/* ---------- boot ---------- */
+(async function(){
+  const url=localStorage.getItem(LS.url)||DEFAULT_URL, key=localStorage.getItem(LS.key)||DEFAULT_KEY;
+  if(!url||!key){show('setup');return}
+  sb = window.supabase.createClient(url,key);
+  const {data:{session}} = await sb.auth.getSession();
+  sb.auth.onAuthStateChange((_e,s)=>{ if(s&&!user) start(s); });
+  if(session) start(session); else show('login');
+})();
+
+async function start(session){
+  user=session.user; show('app');
+  $('whoami').textContent=user.email;
+  $('newLimit').value=newLimit;
+  loadVoices(); speechSynthesis.onvoiceschanged=loadVoices;
+  history.replaceState(null,'',location.pathname);
+  await loadQueue();
+}
+</script>
+</body>
+</html>
