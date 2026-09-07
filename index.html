@@ -240,13 +240,19 @@ async function loadQueue(){
   const {data:due} = await sb.from('en_cards').select('*').neq('state','new').lte('due',t).order('due').limit(200);
   const {count:newDone} = await sb.from('en_reviews').select('*',{count:'exact',head:true}).gte('reviewed_at',t+'T00:00:00');
   const remaining = Math.max(0, newLimit - newDoneToday());
-  const {data:fresh} = remaining
-    ? await sb.from('en_cards').select('*').eq('state','new').order('id').limit(remaining)
-    : {data:[]};
+  let fresh = [];
+  if(remaining){
+    const {data:ids} = await sb.from('en_cards').select('id').eq('state','new');
+    const pick = shuffle([...(ids||[])]).slice(0,remaining).map(r=>r.id);
+    if(pick.length){
+      const {data} = await sb.from('en_cards').select('*').in('id',pick);
+      fresh = data||[];
+    }
+  }
   const {count:total} = await sb.from('en_cards').select('*',{count:'exact',head:true});
   doneToday = newDone||0;
-  queue = shuffle([...(due||[]), ...(fresh||[])]);
-  $('cNew').textContent=(fresh||[]).length;
+  queue = shuffle([...(due||[]), ...fresh]);
+  $('cNew').textContent=fresh.length;
   $('cDue').textContent=(due||[]).length;
   $('cDone').textContent=doneToday;
   if(!total){ $('studyCard').classList.add('hidden');$('studyDone').classList.add('hidden');$('studyEmpty').classList.remove('hidden'); return; }
