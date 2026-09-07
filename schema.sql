@@ -32,6 +32,7 @@ create table if not exists public.en_reviews (
   user_id    uuid not null default auth.uid() references auth.users(id) on delete cascade,
   card_id    bigint references public.en_cards(id) on delete cascade,
   grade      int not null,
+  was_new    boolean not null default false,
   reviewed_at timestamptz not null default now()
 );
 

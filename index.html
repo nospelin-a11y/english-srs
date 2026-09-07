@@ -184,8 +184,7 @@ a{color:var(--accent)}
 <script>
 /* ---------- config ---------- */
 const LS = {
-  url:'srs_url', key:'srs_key', limit:'srs_newlimit', voice:'srs_voice',
-  newDay:'srs_newday', newCount:'srs_newcount'
+  url:'srs_url', key:'srs_key', limit:'srs_newlimit', voice:'srs_voice'
 };
 const DEFAULT_URL='https://fpiamcwjkvyjnjdnziwu.supabase.co';
 const DEFAULT_KEY='sb_publishable_MRkEpqR4A3Dpmn10I2rYEA_bsaHgwRC';
@@ -239,7 +238,7 @@ async function loadQueue(){
   const t=today();
   const {data:due} = await sb.from('en_cards').select('*').neq('state','new').lte('due',t).order('due').limit(200);
   const {count:newDone} = await sb.from('en_reviews').select('*',{count:'exact',head:true}).gte('reviewed_at',t+'T00:00:00');
-  const remaining = Math.max(0, newLimit - newDoneToday());
+  const remaining = Math.max(0, newLimit - await newDoneToday());
   let fresh = [];
   if(remaining){
     const {data:ids} = await sb.from('en_cards').select('id').eq('state','new');
@@ -259,11 +258,11 @@ async function loadQueue(){
   $('studyEmpty').classList.add('hidden');
   next();
 }
-function newDoneToday(){
-  if(localStorage.getItem(LS.newDay)!==today()){localStorage.setItem(LS.newDay,today());localStorage.setItem(LS.newCount,'0')}
-  return +(localStorage.getItem(LS.newCount)||0);
+async function newDoneToday(){
+  const {count} = await sb.from('en_reviews').select('*',{count:'exact',head:true})
+    .eq('was_new',true).gte('reviewed_at',today()+'T00:00:00');
+  return count||0;
 }
-function bumpNewDone(){localStorage.setItem(LS.newCount,String(newDoneToday()+1))}
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a}
 
 function next(){
@@ -292,13 +291,12 @@ function reveal(){
 }
 async function grade(g){
   const c=current, s=schedule(c,g);
-  if(c.state==='new') bumpNewDone();
   $('gradeBox').classList.add('hidden');
   if(s.again) queue.splice(Math.min(3,queue.length),0,{...c,state:'learning',interval:0,ease:s.ease,lapses:s.lapses});
   doneToday++; $('cDone').textContent=doneToday;
   next();
   await sb.from('en_cards').update({interval:s.interval,ease:s.ease,reps:s.reps,lapses:s.lapses,state:s.state,due:s.due}).eq('id',c.id);
-  await sb.from('en_reviews').insert({card_id:c.id,grade:g,user_id:user.id});
+  await sb.from('en_reviews').insert({card_id:c.id,grade:g,user_id:user.id,was_new:c.state==='new'});
 }
 
 /* ---------- TTS ---------- */
